@@ -60,9 +60,9 @@ else
 fi
 
 # Create config file and copy nzk scripts to /usr/local/bin
-for script in ./bash/app-nzk/; then
-    if cp -f "$script" /usr/local/bin/; then
-        chmod +x "/usr/local/bin/$(basename "$script")"
+find ./bash/app-nzk/ -name 'nzk-*' -type f | while read -r script; do
+    if sudo cp -f "$script" /usr/local/bin/; then
+        sudo chmod +x "/usr/local/bin/$(basename "$script")"
         echo "$(basename "$script") copied and permissions set."
     else
         echo "Failed to copy $(basename "$script"). Ensure the file exists and try again."
