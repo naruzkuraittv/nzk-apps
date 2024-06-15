@@ -1,7 +1,7 @@
 #!/bin/bash
 # Script to install "learn to install"
 
-CONFIG_FILE="~/.config/nzk-apps/settings.conf"
+CONFIG_FILE="$HOME/.config/nzk-apps/settings.conf"
 
 # Function to confirm user's input
 areyousure() {
@@ -21,7 +21,7 @@ areyousure() {
 areyounaruzkurai() {
     echo "Are you NaruZKurai? (y/n)"
     echo "If you aren't and you say yes, things will break."
-    echo "So... are you NaruZKurai? aka do you wanna use your laptop v.01 code?"
+    echo "So if you are you NaruZKurai, v1 will be installed and uses /home/kali as default user path"
     read -p "Please enter your answer: " answer
     answer=$(echo "$answer" | tr '[:upper:]' '[:lower:]')
     if [[ $answer == "yes" || $answer == "y" ]]; then
@@ -41,16 +41,29 @@ areyounaruzkurai
 
 # Check and copy the appropriate version of nzk-code
 if [[ $isnaruzkurai == "yes" ]]; then
-    cp ./shell/app-nzk-code/nzk-code1 ./nzk-code
+    if cp -f ./shell/app-nzk-code/nzk-code1 ./nzk-code; then
+        echo "nzk-code1 copied successfully."
+    else
+        echo "Failed to copy nzk-code1. Ensure the file exists and try again."
+        exit 1
+    fi
 elif [[ $isnaruzkurai == "no" ]]; then
-    cp ./shell/app-nzk-code/nzk-code3 ./nzk-code
+    if cp -f ./shell/app-nzk-code/nzk-code3 ./nzk-code; then
+        echo "nzk-code3 copied successfully."
+    else
+        echo "Failed to copy nzk-code3. Ensure the file exists and try again."
+        exit 1
+    fi
 else
     echo "Something went wrong. Please try again."
     exit 69
 fi
 
 # Create config file and copy nzk scripts to /usr/local/bin
-cp ./shell/app-nzk/nzk-* /usr/local/bin/
-chmod +x /usr/local/bin/nzk-*
-
-echo "Installation complete."
+if cp -f ./shell/app-nzk/nzk-* /usr/local/bin/; then
+    chmod +x /usr/local/bin/nzk-*
+    echo "Installation complete."
+else
+    echo "Failed to copy nzk scripts. Ensure the files exist and try again."
+    exit 1
+fi
