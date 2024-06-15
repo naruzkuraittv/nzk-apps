@@ -98,15 +98,15 @@ while [[ $# -gt 0 ]]; do
             action="restore"
             shift
             ;;
-        --htb|--target-machine)
+        --htb|--set-htb|--sb|--set-box|--set-target-machine)
             action="htb"
             shift
             ;;
-        --tm)
+        --tm|--target-machine)
             action="tm"
             shift
             ;;
-        --tmbaq)
+        --tmbaq|--target-machine-backup|--gb-baq|--get-box-backup|--get-target-machine-backup)
             action="tmbaq"
             shift
             ;;
@@ -187,6 +187,7 @@ rflag() {
 }
 
 # Function to display help
+
 hflag() {
     echo "Usage: $0 [options]"
     echo "Options:"
@@ -200,6 +201,9 @@ hflag() {
     echo "  --restore           Restore the original /etc/hosts file"
     echo "  --htb, --target-machine   Display current HTB machine information"
     echo "  --tm                Add IP and URL to current HTB machine info"
+    echo "  --tmbaq             Display backup HTB machine information"
+    echo "  --htb               Display current HTB machine information"
+    echo "  --tm                Add IP and URL to current HTB machine"
     echo "  --tmbaq             Display backup HTB machine information"
 }
 
