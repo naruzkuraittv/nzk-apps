@@ -42,3 +42,4 @@ this is wut i wanna get to work but i cant coz microsoft removed the version of 
 **Description:** Converts text from the clipboard into a PDF, potentially with text-to-speech functionality, enhancing its utility for quick text processing and auditory consumption.
 
 ---
+yes chat gpt helped with some but its all my ideas 
