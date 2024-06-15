@@ -41,14 +41,14 @@ areyounaruzkurai
 
 # Check and copy the appropriate version of nzk-code
 if [[ $isnaruzkurai == "yes" ]]; then
-    if cp -f ./shell/app-nzk-code/nzk-code1 ./nzk-code; then
+    if cp -f ./bash/app-nzk-code/nzk-code1 ./nzk-code; then
         echo "nzk-code1 copied successfully."
     else
         echo "Failed to copy nzk-code1. Ensure the file exists and try again."
         exit 1
     fi
 elif [[ $isnaruzkurai == "no" ]]; then
-    if cp -f ./shell/app-nzk-code/nzk-code3 ./nzk-code; then
+    if cp -f ./bash/app-nzk-code/nzk-code3 ./nzk-code; then
         echo "nzk-code3 copied successfully."
     else
         echo "Failed to copy nzk-code3. Ensure the file exists and try again."
@@ -60,7 +60,7 @@ else
 fi
 
 # Create config file and copy nzk scripts to /usr/local/bin
-if cp -f ./shell/app-nzk/nzk-* /usr/local/bin/; then
+if cp -f ./bash/app-nzk/nzk-* /usr/local/bin/; then
     chmod +x /usr/local/bin/nzk-*
     echo "Installation complete."
 else
