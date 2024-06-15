@@ -1,0 +1,129 @@
+#!/bin/bash
+#nzk-code
+#Config file path
+#best config location for apt apps
+CONFIG_FILE="~/.config/nzk-apps/settings.conf"
+# Default settings
+DEFAULT_COMMAND_LOCATION="/usr/local/bin"
+DEFAULT_USER="kali"
+
+# Function to display usage information
+show_usage() {
+    echo "Usage: nzk-code [options] <path/to/file>"
+    echo "Options:"
+    echo "  -c, --cmd, --command        Open a command from the command location."
+    echo "  -n                          Run without sudo."
+    echo "  -u, --user, --usr <username> Specify a user to bypass the default user check."
+    echo "  --set-command-location      Set a custom command location. < Default> /usr/local/bin"
+    echo "  --set-user-data-dir         Set a custom user data directory."
+    echo "  --reset-to-default          Reset command location and user data directory to defaults."
+    echo "  --help, -h, help            Display help information."
+}
+
+# Function to set default user
+whatisdefaultuser() {
+    echo "What should the default user be?"
+    read -p "Default user: " DEFAULT
+    if [[ ! "$DEFAULT" =~ ^[a-zA-Z0-9._-]+$ ]]; then
+        echo "Invalid username. Please enter a valid username."
+        whatisdefaultuser
+    fi
+    read -p "Are you sure you want to set the default user to $DEFAULT? (y/n): " CONFIRM
+    if [ "$CONFIRM" = "y" ]; then
+        echo "DEFAULT_USER=$DEFAULT" > "$CONFIG_FILE"
+        echo "COMMAND_LOCATION=$DEFAULT_COMMAND_LOCATION" >> "$CONFIG_FILE"
+        echo "Default user set to $DEFAULT"
+    else
+        whatisdefaultuser
+    fi
+    echo "If you made a mistake, run 'nzk-code --reset-to-default' or edit $CONFIG_FILE to change the default user."
+}
+
+# Check for the existence of the configuration file and read from it
+if [ -f "$CONFIG_FILE" ]; then
+    source "$CONFIG_FILE"
+else
+    sudo mkdir -p $(dirname "$CONFIG_FILE")
+    whatisdefaultuser
+fi
+
+# Check if VS Code is installed
+if ! command -v code &> /dev/null; then
+    echo "VS Code is not installed. Please install it first."
+    exit 1
+fi
+
+# Check if the script is invoked with help option
+if [[ "$1" == "--help" || "$1" == "-h" || "$1" == "help" ]]; then
+    show_usage
+    exit 0
+fi
+
+# Default user data directory
+DEFAULT_USER_DATA_DIR="/home/$DEFAULT_USER"
+
+# Parse options
+USE_SUDO=1
+COMMAND_MODE=0
+USER_OVERRIDE=""
+
+while [[ "$1" =~ ^- && ! "$1" == "--" ]]; do
+    case $1 in
+        -n | --no-sudo )
+            USE_SUDO=0
+            ;;
+        -c | --cmd | --command )
+            COMMAND_MODE=1
+            ;;
+        -u | --user | --usr )
+            shift
+            USER_OVERRIDE=$1
+            ;;
+        --set-command-location )
+            shift
+            COMMAND_LOCATION=$1
+            echo "COMMAND_LOCATION=\"$COMMAND_LOCATION\"" > "$CONFIG_FILE"
+            echo "USER_DATA_DIR=\"$USER_DATA_DIR\"" >> "$CONFIG_FILE"
+            ;;
+        --set-user-data-dir )
+            shift
+            USER_DATA_DIR=$1
+            echo "COMMAND_LOCATION=\"$COMMAND_LOCATION\"" > "$CONFIG_FILE"
+            echo "USER_DATA_DIR=\"$USER_DATA_DIR\"" >> "$CONFIG_FILE"
+            ;;
+        --reset-to-default )
+            COMMAND_LOCATION="$DEFAULT_COMMAND_LOCATION"
+            USER_DATA_DIR="/home/$DEFAULT_USER"
+            echo "COMMAND_LOCATION=\"$COMMAND_LOCATION\"" > "$CONFIG_FILE"
+            echo "USER_DATA_DIR=\"$USER_DATA_DIR\"" >> "$CONFIG_FILE"
+            ;;
+    esac
+    shift
+done
+
+if [[ "$1" == '--' ]]; then shift; fi
+
+# Set user data directory based on user override
+if [ -n "$USER_OVERRIDE" ]; then
+    DEFAULT_USER_DATA_DIR="/home/$USER_OVERRIDE"
+fi
+
+# Execute the command
+if [ $COMMAND_MODE -eq 1 ]; then
+    FILE_LOCATION="$COMMAND_LOCATION/$1"
+    echo "dont forget to use nzk-mod <script> to make it executable"
+else
+    FILE_LOCATION=$1
+fi
+
+if [ -f "$FILE_LOCATION" ]; then
+    echo "Opening file: $FILE_LOCATION"
+    if [ $USE_SUDO -eq 1 ]; then
+        sudo code "$FILE_LOCATION" --no-sandbox --user-data-dir "$DEFAULT_USER_DATA_DIR"
+    else
+        code "$FILE_LOCATION" --no-sandbox --user-data-dir "$DEFAULT_USER_DATA_DIR"
+    fi
+else
+    echo "File not found at $FILE_LOCATION. Please check the file path."
+    exit 1
+fi

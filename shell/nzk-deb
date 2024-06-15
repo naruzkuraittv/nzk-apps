@@ -1,0 +1,17 @@
+#!/bin/bash
+# nzk-deb - Install a .deb file using dpkg
+CONFIG_FILE="usr/share/nzk-scripts/settings.conf"
+
+if [ "$#" -ne 1 ]; then
+    echo "Usage: $0 /path/to/your/package.deb"
+    echo "this just makes dpkg -i $0 easier for me to install packages"
+    echo "I forget that its dpkg -i for local deb files sometimes and its easier for me to remember nzk-install"
+    exit 1
+fi
+
+if ! [ -e "$1" ]; then
+    echo "Error: File does not exist."
+    exit 1
+fi
+
+sudo dpkg -i "$1"

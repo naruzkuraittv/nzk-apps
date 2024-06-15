@@ -1,0 +1,3 @@
+#!bin/bash 
+#this function launches a python script in /nzk/python that script nzk_schoolreader.py launched by python3
+#idk maybe will be used instead of cfr but its empty

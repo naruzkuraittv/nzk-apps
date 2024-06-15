@@ -1,0 +1,110 @@
+#!/bin/bash
+
+PAT_FILE="/nzk/temp/gitpat.nzkt"
+USER_FILE="/nzk/git/users.nzkt"
+REPO_URL_FILE="/nzk/git/repourls.nzkt"
+CONFIG_FILE="usr/share/nzk-scripts/settings.conf"
+
+setup() {
+    askusername();
+    read -sp "Enter Personal Access Token: " pat
+    echo "$pat" > "$PAT_FILE"
+    echo
+    
+    while true; do
+        read -p "Do you want to add a repo URL? (y/n): " answer
+        if [[ $answer == "y" ]]; then
+            read -p "Enter repo URL ending in .git: " repo_url
+            does_it_exist "$REPO_URL_FILE"
+            echo "$repo_url" >> "$REPO_URL_FILE"
+        elif [[ $answer == "n" ]]; then
+            break
+        else
+            echo "Please answer y or n."
+        fi
+    done
+}
+
+does_it_exist() {
+    if [ ! -f "$1" ]; then
+        touch "$1"
+    fi
+}
+
+update_pat() {
+    echo "$1" > "$PAT_FILE"
+    echo "PAT updated."
+}
+
+update_user() {
+    echo "$1" > "$USER_FILE"
+    echo "User updated."
+}
+askusername() {
+    while true; do
+        read -p "Enter GitHub username: " username
+        echo "$username" > "$USER_FILE"
+
+        read -p "Is '$username' correct? (y/n): " confirmed
+        if [[ $confirmed == "y" ]]; then
+            return
+        fi
+    done
+}
+
+git_push() {
+    pat=$(<"$PAT_FILE")
+    username=$(<"$USER_FILE")
+    repo_urls=$(<"$REPO_URL_FILE")
+
+    IFS=$'\n' # Split on new lines
+    for repo_url in $repo_urls; do
+        # Modify URL to include PAT for authentication
+        git -C "$(dirname "${repo_url/.git/}")" push -u origin main
+    done
+}
+
+nzk-git() {
+    pat=$(<"$PAT_FILE")
+    username=$(<"$USER_FILE")
+    command=$1
+    shift # Remove the first argument which is the git command
+
+    case "$command" in
+        push|clone|fetch)
+            if [[ "$command" == "clone" && $# -eq 1 ]]; then
+                repo_url="$1"
+                modified_url="https://${username}:${pat}@${repo_url#https://}"
+                git "$command" "$modified_url"
+            else
+                for repo_url in "$@"; do
+                    modified_url="https://${username}:${pat}@${repo_url#https://}"
+                    git -C "$(dirname "${repo_url/.git/}")" "$command"
+                done
+            fi
+            ;;
+        *)
+            echo "Unsupported command: $command"
+            exit 1
+            ;;
+    esac
+}
+
+case "$1" in
+    -setup)
+        setup
+        ;;
+    -Upat)
+        update_pat "$2"
+        ;;
+    -Uusr)
+        update_user "$2"
+        ;;
+    push|clone|fetch)
+        nzk-git "$@"
+        ;;
+    *)
+        echo -e "Usage: $0 --setup [First time setup] \n       $0 -Upat [NewPAT] [Update PAT] \n       $0 -Uusr [NewUsername] [Update Username] \n       $0 {push|clone|fetch} [Repo URLs...]"
+        exit 1
+        ;;
+esac

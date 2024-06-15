@@ -1,0 +1,48 @@
+#!/bin/bash
+#nzk-chmod
+# Function to display usage information
+CONFIG_FILE="~/.config/nzk-apps/settings.conf"
+show_usage() {
+    echo "Usage: nzk-chmod [-c <filename>] [-p <filename>] [-r filename]"
+    echo "[-p] permissions \n [-c] command [-r] removes "
+}
+
+# Check if the script is invoked with help option
+if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    show_usage
+    exit 0
+fi
+
+# Check if the -p option is provided
+if [ "$1" = "-p" ]; then
+    if [ $# -ne 2 ]; then
+        echo "Usage: nzk-chmod -p <filename>"
+        exit 1
+    fi
+
+    FILENAME=$2
+
+    # Use sudo with ls -l to display file permissions
+    sudo ls -l "$FILENAME"
+elif [ "$1" = "-c" ]; then
+    if [ $# -ne 2 ]; then
+        echo "Usage: nzk-chmod -c <filename>"
+        exit 1
+    fi
+
+    FILENAME=$2
+    FILE_LOCATION="/usr/local/bin/$FILENAME"
+
+    # Check if the file exists
+    if [ -e "$FILE_LOCATION" ]; then
+        # Use sudo with chmod to change permissions and make it executable
+        sudo chmod +x "$FILE_LOCATION"
+        echo "Changed permissions for $FILENAME to make it executable."
+    else
+        echo "File not found at $FILE_LOCATION."
+        exit 1
+    fi
+else
+    show_usage
+    exit 1
+fi

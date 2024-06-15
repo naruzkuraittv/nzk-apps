@@ -1,0 +1,33 @@
+#!/bin/bash
+#nzk-app-add
+#i use kali linux
+#if you dont use kde-plazma i thin 11 this probs wont work
+# Check for at least one argument
+CONFIG_FILE="~/.config/nzk-apps/settings.conf"
+if [ "$#" -lt 1 ]; then
+    echo "Usage: nzk-app-add <executable> [--icon <iconpath>]"
+    exit 1
+fi
+
+EXECUTABLE=$(realpath "$1")
+APP_NAME=$(basename "$EXECUTABLE")
+ICON_PATH=""
+
+# Check for optional icon argument
+if [ "$2" == "--icon" ] && [ -n "$3" ]; then
+    ICON_PATH=$(realpath "$3")
+fi
+
+# Create .desktop file
+DESKTOP_ENTRY="$HOME/.local/share/applications/$APP_NAME.desktop"
+echo "[Desktop Entry]" > "$DESKTOP_ENTRY"
+echo "Type=Application" >> "$DESKTOP_ENTRY"
+echo "Name=$APP_NAME" >> "$DESKTOP_ENTRY"
+echo "Exec=$EXECUTABLE" >> "$DESKTOP_ENTRY"
+echo "Icon=$ICON_PATH" >> "$DESKTOP_ENTRY"
+echo "Terminal=false" >> "$DESKTOP_ENTRY"
+
+# Make the .desktop file executable
+chmod +x "$DESKTOP_ENTRY"
+
+echo "$APP_NAME added to applications menu."

@@ -1,0 +1,56 @@
+#!/bin/bash
+#nzk-code
+# Function to display usage information
+CONFIG_FILE="~/.config/nzk-apps/settings.conf"
+show_usage() {
+    echo "Usage: nzk-code <location/path/to/file> or nzk-code -c <command> or nzk-code --m -c <command1 command2 ...>"
+}
+
+# Check if the script is invoked with help option
+if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "help" ]; then
+    show_usage
+    exit 0
+fi
+
+# Check if an argument was provided
+if [ $# -eq 0 ]; then
+    echo "No file path or command provided. Opening VS Code without a specific file."
+    sudo code --no-sandbox --user-data-dir /home/kali/
+elif [[ "$1" = "-mc" ]] || [[ "$1" = "-cm" ]] || { [[ "$1" = "-m" ]] && [[ "$2" = "-c" ]]; }; then
+    if [[ "$1" = "-m" ]]; then
+        shift 2
+    else
+        shift
+    fi
+
+    if [ $# -eq 0 ]; then
+        echo "No commands provided for multiple file opening."
+        exit 1
+    fi
+
+    for cmd in "$@"; do
+        FILE_LOCATION="/usr/local/bin/$cmd"
+        echo "Opening file: $FILE_LOCATION"
+        sudo code $FILE_LOCATION --no-sandbox --user-data-dir /home/kali/ &
+    done
+    wait
+elif [ "$1" = "-c" ] || [ "$1" = "--cmd" ] || [ "$1" = "--command" ]; then
+    if [ $# -ne 2 ]; then
+        echo "No command provided. Please provide a command."
+        exit 1
+    fi
+    COMMAND=$2
+    FILE_LOCATION="/usr/local/bin/$COMMAND"
+    echo "Opening file: $FILE_LOCATION"
+    sudo code $FILE_LOCATION --no-sandbox --user-data-dir /home/kali/
+else
+    FILE_LOCATION=$1
+    if [ -f $FILE_LOCATION ]; then
+        echo "Opening file: $FILE_LOCATION"
+        sudo code $FILE_LOCATION --no-sandbox --user-data-dir /home/kali/
+    else
+        echo "File not found at $FILE_LOCATION doing it anyways"
+        sudo code $FILE_LOCATION --no-sandbox --user-data-dir /home/kali/
+        exit 1
+    fi
+fi

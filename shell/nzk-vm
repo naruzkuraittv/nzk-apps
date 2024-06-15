@@ -1,0 +1,5 @@
+#!/bin/bash
+# nzk-deb - Install a .deb file using dpkg
+CONFIG_FILE="~/.config/nzk-apps/settings.conf"
+
+sudo virtualbox

@@ -1,0 +1,110 @@
+#!/bin/bash
+#nzk-nature
+# Define associative arrays for natures and their properties
+CONFIG_FILE="~/.config/nzk-apps/settings.conf"
+declare -A nature_stats=(
+    [0]="— —" [1]="Attack Defense" [2]="Attack Speed" [3]="Attack Sp. Attack" [4]="Attack Sp. Defense" 
+    [5]="Defense Attack" [6]="— —" [7]="Defense Speed" [8]="Defense Sp. Attack" [9]="Defense Sp. Defense" 
+    [10]="Speed Attack" [11]="Speed Defense" [12]="— —" [13]="Speed Sp. Attack" [14]="Speed Sp. Defense" 
+    [15]="Sp. Attack Attack" [16]="Sp. Attack Defense" [17]="Sp. Attack Speed" [18]="— —" [19]="Sp. Attack Sp. Defense" 
+    [20]="Sp. Defense Attack" [21]="Sp. Defense Defense" [22]="Sp. Defense Speed" [23]="Sp. Defense Sp. Attack" [24]="— —"
+)
+declare -A nature_flavors_english=(
+    [0]="— —" [1]="Spicy Sour" [2]="Spicy Sweet" [3]="Spicy Dry" [4]="Spicy Bitter" 
+    [5]="Sour Spicy" [6]="— —" [7]="Sour Sweet" [8]="Sour Dry" [9]="Sour Bitter" 
+    [10]="Sweet Spicy" [11]="Sweet Sour" [12]="— —" [13]="Sweet Dry" [14]="Sweet Bitter" 
+    [15]="Dry Spicy" [16]="Dry Sour" [17]="Dry Sweet" [18]="— —" [19]="Dry Bitter" 
+    [20]="Bitter Spicy" [21]="Bitter Sour" [22]="Bitter Sweet" [23]="Bitter Dry" [24]="— —"
+)
+declare -A nature_flavors_japanese=(
+    [0]="— —" [1]="からい すっぱい" [2]="からい あまい" [3]="からい のま" [4]="からい にがい" 
+    [5]="すっぱい からい" [6]="— —" [7]="すっぱい あまい" [8]="すっぱい のま" [9]="すっぱい にがい" 
+    [10]="あまい からい" [11]="あまい すっぱい" [12]="— —" [13]="あまい のま" [14]="あまい にがい" 
+    [15]="のま からい" [16]="のま すっぱい" [17]="のま あまい" [18]="— —" [19]="のま にがい" 
+    [20]="にがい からい" [21]="にがい すっぱい" [22]="にがい あまい" [23]="にがい のま" [24]="— —"
+)
+declare -A nature_flavors_romanji=(
+    [0]="— —" [1]="Karaī Suppai" [2]="Karaī Amai" [3]="Karaī Noma" [4]="Karaī Nigai" 
+    [5]="Suppai Karaī" [6]="— —" [7]="Suppai Amai" [8]="Suppai Noma" [9]="Suppai Nigai" 
+    [10]="Amai Karaī" [11]="Amai Suppai" [12]="— —" [13]="Amai Noma" [14]="Amai Nigai" 
+    [15]="Noma Karaī" [16]="Noma Suppai" [17]="Noma Amai" [18]="— —" [19]="Noma Nigai" 
+    [20]="Nigai Karaī" [21]="Nigai Suppai" [22]="Nigai Amai" [23]="Nigai Noma" [24]="— —"
+)
+# Define associative arrays for English, Japanese, and Romanji nature names
+declare -A english_natures=( 
+    [0]="Hardy" [1]="Lonely" [2]="Brave" [3]="Adamant" [4]="Naughty" 
+    [5]="Bold" [6]="Docile" [7]="Relaxed" [8]="Impish" [9]="Lax" 
+    [10]="Timid" [11]="Hasty" [12]="Serious" [13]="Jolly" [14]="Naive" 
+    [15]="Modest" [16]="Mild" [17]="Quiet" [18]="Bashful" [19]="Rash" 
+    [20]="Calm" [21]="Gentle" [22]="Sassy" [23]="Careful" [24]="Quirky" 
+)
+declare -A japanese_natures=( 
+    [0]="がんばりや" [1]="さみしがり" [2]="ゆうかん" [3]="いじっぱり" [4]="やんちゃ" 
+    [5]="ずぶとい" [6]="すなお" [7]="のんき" [8]="わんぱく" [9]="のうてんき" 
+    [10]="おくびょう" [11]="せっかち" [12]="まじめ" [13]="ようき" [14]="むじゃき" 
+    [15]="ひかえめ" [16]="おっとり" [17]="れいせい" [18]="てれや" [19]="うっかりや" 
+    [20]="おだやか" [21]="おとなしい" [22]="なまいき" [23]="しんちょう" [24]="きまぐれ" 
+)
+declare -A romanji_natures=(
+    [0]="Gannbariya" [1]="Samishigari" [2]="Yuukan" [3]="Ijippari" [4]="Yancha" 
+    [5]="Zubutoi" [6]="Sunao" [7]="Nonnki" [8]="Wanpaku" [9]="Noutennki" 
+    [10]="Okubiyou" [11]="Sekkachi" [12]="Majime" [13]="Youki" [14]="Mujyaki" 
+    [15]="Hikaeme" [16]="Ottori" [17]="Reisei" [18]="Tereya" [19]="Ukkariya" 
+    [20]="Odayaka" [21]="Otonashii" [22]="Namaiki" [23]="Shinnchyou" [24]="Kimagure"
+)
+# Function to find the index of a nature name, case-insensitive
+find_nature_index() {
+    local nature_name_lower=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+    local -n arr=$2
+    for i in "${!arr[@]}"; do
+        if [[ "$(echo "${arr[$i]}" | tr '[:upper:]' '[:lower:]')" == "$nature_name_lower" ]]; then
+            echo $i
+            return
+        fi
+    done
+    echo "-1"
+}
+
+# Check for correct number of arguments
+if [ $# -ne 2 ]; then
+    echo "Usage: $0 <nature_name> [-e|-j|-r]"
+    exit 1
+fi
+
+# Get the nature name and flag
+nature_name="$1"
+flag="$2"
+
+# Main logic to get nature information based on flag and nature name
+case $flag in
+    -e)
+        index=$(find_nature_index "$nature_name" english_natures)
+        if [[ $index -ne -1 ]]; then
+            echo "${japanese_natures[$index]}"
+        else
+            echo "Error: Nature '$nature_name' not found in English natures."
+        fi
+        ;;
+    -j)
+        index=$(find_nature_index "$nature_name" japanese_natures)
+        if [[ $index -ne -1 ]]; then
+            echo "${english_natures[$index]}"
+        else
+            echo "Error: Nature '$nature_name' not found in Japanese natures."
+        fi
+        ;;
+    -r)
+        index=$(find_nature_index "$nature_name" romanji_natures)
+        if [[ $index -ne -1 ]]; then
+            echo "${english_natures[$index]}"
+        else
+            echo "Error: Nature '$nature_name' not found in Romanji natures."
+        fi
+        ;;
+    *)
+        echo "Invalid flag: $flag. Use -e for English to Japanese, -j for Japanese to English, -r for Romanji to English."
+        echo "correct usage would be something like:"
+        echo "nzk-nature "jolly" -e"
+        exit 1
+        ;;
+esac

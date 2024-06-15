@@ -1,0 +1,205 @@
+#!/bin/bash
+#nzk-cfr, needs a new name also doesnt work because ms edge took away capabilities to use edge reader, need some way to do a .exe version possibly 
+launch_flag=1
+
+# Function to install Python 3 if needed
+install_python3() {
+    sudo apt install python3
+}
+
+request_sudo() {
+    if [[ $EUID -ne 0 ]]; then
+        echo "This app uses copy and file creation and needs root privileges for keyboard access. I'm sorry; I don't know how to get around it."
+        sudo "$0" "$@"
+        exit $?
+    fi
+}
+
+# Function to display help message
+show_help() {
+    echo "Usage: nzk-cfr [OPTIONS]"
+    echo "Options:"
+    echo "  -s, --setup   Install Python3 dependencies and download MEIRYO.TTC font"
+    echo "  -h, --help    Show this help message"
+    echo "  -p, --python3 Install Python3"
+}
+
+python_script(){
+# Create a Python script file /nzk/nzk-cfr/nzk-cfr.py
+sudo cat <<'EOF' > /nzk/nzk-cfr/nzk-cfr.pyimport pyperclip
+import time
+from fpdf import FPDF
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+import subprocess
+import threading
+import keyboard
+import re
+import clipboard
+import pyautogui
+import queue
+
+cmd_queue = queue.Queue()
+
+PDF_PATH = "/tmp/temp_voice_reader.pdf"
+FONT_PATH = "/nzk/nzk-crf/MEIRYO.TTC"
+EDGE_PATH = "/usr/bin/microsoft-edge"
+
+print("---- Usage Guide ----")
+print("Ctrl+Alt+Shift+R: Open clipboard content as a PDF in Edge and activate reader mode.")
+print("Ctrl+Alt+Shift+F: Clean and format the clipboard content, then create a PDF.")
+print("---------------------")
+print("PSA YOU FORGET SHIT, copy something for this script to start\n then f to format and r to read")
+print("dont fprget to love yourself <3")
+
+def command_worker():
+    while True:
+        # Block until a command is available
+        cmd = cmd_queue.get()
+        if cmd == "open_pdf":
+            open_pdf_in_edge()
+        elif cmd == "sentence_fixer":
+            sentence_fragment_fixer()
+            print("prepped for ripping")
+        # Signal the task is done
+        cmd_queue.task_done()
+
+def enqueue_command(command):
+    if command not in list(cmd_queue.queue):
+        cmd_queue.put(command)
+
+def hotkey_listener():
+    keyboard.add_hotkey('ctrl+alt+shift+r', enqueue_command, args=["open_pdf"])
+    keyboard.add_hotkey('ctrl+alt+shift+f', enqueue_command, args=["sentence_fixer"])
+    # Keep the script running
+    keyboard.wait()
+
+def create_pdf(data):
+    c = canvas.Canvas(PDF_PATH, pagesize=letter)
+    c.setFont("Helvetica", 12)  # Example using a standard font
+    textobject = c.beginText()
+    textobject.setTextOrigin(10, 730)
+    for line in data.split('\n'):
+        textobject.textLine(line)
+    c.drawText(textobject)
+    c.save()
+    print("Created PDF")
+
+def sentence_fragment_fixer():
+    global live_cb
+    live_cb = pyperclip.paste()
+    cln_cb = clean_clipboard(live_cb)
+    cln_cb = re.sub(r'\s+', ' ', cln_cb)
+    cln_cb = re.sub(r'([.?!]) ', r'\1\n', cln_cb)
+    cln_cb = re.sub(r'\n.\n', '\n', cln_cb)
+    cln_cb = re.sub(r'\n\ .\n', '\n', cln_cb)
+    cln_cb = re.sub(r'\n\ .\n', '\n', cln_cb)
+    cln_cb = re.sub(r'\n.\n', '\n', cln_cb)
+    cln_cb = re.sub(r'\n ', '\n', cln_cb)
+    cln_cb = re.sub(r'^\s+|\s+$', '', cln_cb)
+    pyperclip.copy(cln_cb)
+    live_cb = pyperclip.paste()
+    create_pdf(cln_cb)
+    time.sleep(1)
+
+def clean_clipboard(clipboard_data):
+    cleaned_text = clipboard_data.strip()
+    cleaned_text = rm_garbage_data1(cleaned_text)
+
+    clipboard.copy(cleaned_text)
+    print(f"{cleaned_text}")
+    return cleaned_text
+
+def rm_garbage_data1(data):
+    unwanted_strings = [
+        "Press [CTRL + S] to save as a note (Required)",
+        ": Added to Selection",
+        "Press [CTRL + S] to save as a note",
+        "(Required)",
+        "[SOUND]",
+        "[MUSIC]",
+        "Interactive Transcript - Enable basic transcript mode by pressing the escape key",
+        "You may navigate through the transcript using tab. To save a note for a section of text press CTRL + S.",
+        "To expand your selection you may use CTRL + arrow key. You may contract your selection using shift + CTRL + arrow key.",
+        "For screen readers that are incompatible with using arrow keys for shortcuts, you can replace them with the H J K L keys.",
+        "Some screen readers may require using CTRL in conjunction with the alt key"
+    ]
+    for unwanted_string in unwanted_strings:
+        data = data.replace(unwanted_string, "")
+
+    # Remove patterns of periods followed by multiple spaces
+    data = re.sub(r' \.(\s*​\.)*\s*', '', data)
+    pyperclip.copy(data)
+    return data
+
+live_cb = pyperclip.paste()
+create_pdf(live_cb)
+threading.Thread(target=command_worker, daemon=True).start()
+hotkey_listener()
+EOF
+
+}
+
+launch_app(){
+request_sudo
+sudo mkdir -p /nzk/nzk-cfr/
+sudo chmod 777 /nzk/nzk-cfr/
+python_script
+
+
+# Make the Python script executable
+chmod +x /nzk/nzk-cfr/nzk-cfr.py
+
+# Launch the Python script
+/nzk/nzk-cfr/nzk-cfr.py
+}
+
+# Check for command-line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -s|--setup)
+            launch_flag=0
+            echo "Setting up Python3 pip dependencies..."
+            sudo apt install python3-pip
+            sudo python3 -m pip install pyperclip keyboard fpdf clipboard pyautogui reportlab
+            echo "Installed pip dependencies"
+            #sudo apt install fontforge
+            # Ensure the directory exists and has the correct permissions
+            sudo mkdir -p /nzk/nzk-crf/
+            sudo chmod 777 /nzk/nzk-crf/
+
+            # Download the font and change its permissions
+            #sudo wget -O /nzk/nzk-crf/MEIRYO.TTC https://github.com/gocreating/fonts/raw/master/MEIRYO.TTC
+            #sudo chmod 777 /nzk/nzk-crf/MEIRYO.TTC
+
+            # FontForge conversion script
+            #echo "Open('/nzk/nzk-crf/MEIRYO.TTC'); Generate('/nzk/nzk-crf/MEIRYO.TTF');" > /nzk/nzk-crf/convert-font.pe
+            #sudo chmod 777 /nzk/nzk-crf/convert-font.pe
+            #sudo fontforge -script /nzk/nzk-crf/convert-font.pe
+
+            #echo "Downloaded and converted MEIRYO font"
+
+            ;;
+        -h|--help)
+            launch_flag=0
+            show_help
+            exit 0
+            ;;
+        -p|--python3)
+            launch_flag=0
+            install_python3
+            exit 0
+            ;;
+        *)
+            launch_flag=0
+            echo "Invalid option: $1"
+            show_help
+            exit 1
+            ;;
+    esac
+    shift
+done
+
+if [[ $launch_flag -eq 1 ]]; then
+    launch_app
+fi
