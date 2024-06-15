@@ -60,10 +60,14 @@ else
 fi
 
 # Create config file and copy nzk scripts to /usr/local/bin
-if cp -f ./bash/app-nzk/nzk-* /usr/local/bin/; then
-    chmod +x /usr/local/bin/nzk-*
-    echo "Installation complete."
-else
-    echo "Failed to copy nzk scripts. Ensure the files exist and try again."
-    exit 1
-fi
+for script in ./bash/app-nzk/nzk-*; then
+    if cp -f "$script" /usr/local/bin/; then
+        chmod +x "/usr/local/bin/$(basename "$script")"
+        echo "$(basename "$script") copied and permissions set."
+    else
+        echo "Failed to copy $(basename "$script"). Ensure the file exists and try again."
+        exit 1
+    fi
+done
+
+echo "Installation complete."
