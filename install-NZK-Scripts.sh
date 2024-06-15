@@ -60,7 +60,7 @@ else
 fi
 
 # Create config file and copy nzk scripts to /usr/local/bin
-for script in ./bash/app-nzk/nzk-*; then
+for script in ./bash/app-nzk/; then
     if cp -f "$script" /usr/local/bin/; then
         chmod +x "/usr/local/bin/$(basename "$script")"
         echo "$(basename "$script") copied and permissions set."
