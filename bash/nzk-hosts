@@ -1,0 +1,212 @@
+#!/bin/bash
+# I spent too much time on this. instead of hacking boxes, we now have a single command to make things SLIGHTLY faster.
+# Function to check if the input is a valid IPv4 address
+is_ipv4() {
+    local ip=$1
+    local IFS=.
+    local -a octets=($ip)
+    [[ ${#octets[@]} -eq 4 ]] || return 1
+    for octet in "${octets[@]}"; do
+        [[ $octet =~ ^[0-9]+$ ]] || return 1
+        (( octet >= 0 && octet <= 255 )) || return 1
+    done
+    return 0
+}
+
+# Function to check if the input is a valid IPv6 address
+is_ipv6() {
+    local ip=$1
+    if [[ $ip =~ ^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$ ]]; then
+        return 0
+    elif [[ $ip =~ ^([0-9a-fA-F]{1,4}:){1,7}:$ ]]; then
+        return 0
+    elif [[ $ip =~ ^([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}$ ]]; then
+        return 0
+    elif [[ $ip =~ ^([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}$ ]]; then
+        return 0
+    elif [[ $ip =~ ^([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}$ ]]; then
+        return 0
+    elif [[ $ip =~ ^([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}$ ]]; then
+        return 0
+    elif [[ $ip =~ ^([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}$ ]]; then
+        return 0
+    elif [[ $ip =~ ^[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})$ ]]; then
+        return 0
+    elif [[ $ip =~ ^:((:[0-9a-fA-F]{1,4}){1,7}|:)$ ]]; then
+        return 0
+    elif [[ $ip =~ ^fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}$ ]]; then
+        return 0
+    elif [[ $ip =~ ^::(ffff(:0{1,4}){0,1}:){0,1}(([0-9]{1,3}\.){3}[0-9]{1,3})$ ]]; then
+        return 0
+    elif [[ $ip =~ ^([0-9a-fA-F]{1,4}:){1,4}:(([0-9]{1,3}\.){3}[0-9]{1,3})$ ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Function to check if the input is a valid URL
+is_url() {
+    local url=$1
+    [[ $url =~ ^https?:// ]] && return 0
+    [[ $url =~ \.[a-z]{2,}$ ]] && return 0
+    return 1
+}
+
+# Determine if arguments are IP or URL
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -i|--ip)
+            if is_ipv4 "$2" || is_ipv6 "$2"; then
+                ip=$2
+            else
+                echo "Invalid IP address: $2"
+                exit 1
+            fi
+            shift 2
+            ;;
+        -u|--url)
+            if is_url "$2"; then
+                url=$2
+            else
+                echo "Invalid URL: $2"
+                exit 1
+            fi
+            shift 2
+            ;;
+        -a|--add)
+            action="add"
+            shift
+            ;;
+        -r|--remove)
+            action="remove"
+            shift
+            ;;
+        -h|--help)
+            action="help"
+            shift
+            ;;
+        -l|--list)
+            action="list"
+            shift
+            ;;
+        -b|--backup)
+            action="backup"
+            shift
+            ;;
+        --restore)
+            action="restore"
+            shift
+            ;;
+        --htb|--target-machine)
+            action="htb"
+            shift
+            ;;
+        --tm)
+            action="tm"
+            shift
+            ;;
+        --tmbaq)
+            action="tmbaq"
+            shift
+            ;;
+        *)
+            echo "Invalid option: $1"
+            exit 1
+            ;;
+    esac
+done
+
+# Function to handle flags
+checkflags() {
+    case $action in
+        add)
+            aflag
+            ;;
+        remove)
+            rflag
+            ;;
+        help)
+            hflag
+            ;;
+        list)
+            /usr/bin/cat /etc/hosts
+            ;;
+        backup)
+            sudo cp /etc/hosts /etc/hosts.bak
+            ;;
+        restore)
+            sudo cp /etc/hosts.bak /etc/hosts
+            ;;
+        htb|target-machine)
+            /usr/bin/cat ./current_htb_machine.nzk_htb
+            ;;
+        tm)
+            echo "$ip $url" | sudo tee -a ./current_htb_machine.nzk_htb
+            sudo cp -f ./current_htb_machine.nzk_htb ./current_htb_machine.nzk_htb.bak
+            ;;
+        tmbaq)
+            /usr/bin/cat ./current_htb_machine.nzk_htb.bak
+            ;;
+        *)
+            echo "No valid action specified."
+            exit 1
+            ;;
+    esac
+}
+
+# Function to add entry to /etc/hosts
+aflag() {
+    if [[ -n $ip && -n $url ]]; then
+        echo "Are you sure you want to add IP: $ip, URL: $url to /etc/hosts? [y/n]"
+        read -r answer 
+        if [[ $answer =~ ^[yY]$ ]]; then
+            echo "$ip $url" | sudo tee -a /etc/hosts
+        else
+            echo "Operation cancelled."
+        fi
+    else
+        echo "IP and URL must be specified with -i and -u flags."
+        exit 1
+    fi
+}
+
+# Function to remove entry from /etc/hosts
+rflag() {
+    if [[ -n $ip && -n $url ]]; then
+        sudo sed -i "/$ip $url/d" /etc/hosts
+        if ! grep -q "$ip $url" /etc/hosts; then
+            echo "$ip $url removed from /etc/hosts."
+        else
+            echo "Could not remove $ip $url from /etc/hosts."
+        fi
+    else
+        echo "IP and URL must be specified with -i and -u flags."
+        exit 1
+    fi
+}
+
+# Function to display help
+hflag() {
+    echo "Usage: $0 [options]"
+    echo "Options:"
+    echo "  -i, --ip            Specify the IP address"
+    echo "  -u, --url           Specify the URL"
+    echo "  -a, --add           Add IP and URL to /etc/hosts"
+    echo "  -r, --remove        Remove IP and URL from /etc/hosts"
+    echo "  -h, --help          Display this help message"
+    echo "  -l, --list          List all entries in /etc/hosts"
+    echo "  -b, --backup        Backup the current /etc/hosts file"
+    echo "  --restore           Restore the original /etc/hosts file"
+    echo "  --htb, --target-machine   Display current HTB machine information"
+    echo "  --tm                Add IP and URL to current HTB machine info"
+    echo "  --tmbaq             Display backup HTB machine information"
+}
+
+# Process flags
+if [[ -n $action ]]; then
+    checkflags
+else
+    echo "No action specified. Use --help for usage."
+    exit 1
+fi
